@@ -380,7 +380,7 @@ class Student:
             try:
                 conn = mysql.connector.connect(username='root', password='12345',host='localhost',database='face_recognition',port=3307)
                 mycursor = conn.cursor()
-                mycursor.execute("insert into student values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(
+                mycursor.execute("insert into student(Student_ID, Name, Department, Course, Year, Semester, Division, Gender, DOB, Mobile_No, Address, Roll_No, Email, Teacher_Name, PhotoSample) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(
                 self.var_std_id.get(),
                 self.var_std_name.get(),
                 self.var_dep.get(),
@@ -585,73 +585,79 @@ class Student:
 #=====================This part is related to Opencv Camera part=======================
 # ==================================Generate Data set take image=========================
     def generate_dataset(self):
-        if self.var_dep.get()=="Select Department" or self.var_course.get=="Select Course" or self.var_year.get()=="Select Year" or self.var_semester.get()=="Select Semester" or self.var_std_id.get()=="" or self.var_std_name.get()=="" or self.var_div.get()=="" or self.var_roll.get()=="" or self.var_gender.get()=="" or self.var_dob.get()=="" or self.var_email.get()=="" or self.var_mob.get()=="" or self.var_address.get()=="" or self.var_teacher.get()=="":
+        # Kiểm tra các trường thông tin
+        if self.var_dep.get()=="Select Department" or self.var_course.get()=="Select Course" or self.var_year.get()=="Select Year" or self.var_semester.get()=="Select Semester" or self.var_std_id.get()=="" or self.var_std_name.get()=="" or self.var_div.get()=="" or self.var_roll.get()=="" or self.var_gender.get()=="" or self.var_dob.get()=="" or self.var_email.get()=="" or self.var_mob.get()=="" or self.var_address.get()=="" or self.var_teacher.get()=="":
             messagebox.showerror("Error","Please Fill All Fields are Required!",parent=self.root)
         else:
             try:
                 conn = mysql.connector.connect(username='root', password='12345',host='localhost',database='face_recognition',port=3307)
                 mycursor = conn.cursor()
-                mycursor.execute("select * from student")
-                myreslut = mycursor.fetchall()
-                id=0
-                for x in myreslut:
-                    id+=1
-
-                mycursor.execute("update student set Name=%s,Department=%s,Course=%s,Year=%s,Semester=%s,Division=%s,Gender=%s,DOB=%s,Mobile_No=%s,Address=%s,Roll_No=%s,Email=%s,Teacher_Name=%s,PhotoSample=%s where Student_ID=%s",( 
-                    self.var_std_name.get(),
-                    self.var_dep.get(),
-                    self.var_course.get(),
-                    self.var_year.get(),
-                    self.var_semester.get(),
-                    self.var_div.get(),
-                    self.var_gender.get(),
-                    self.var_dob.get(),
-                    self.var_mob.get(),
-                    self.var_address.get(),
-                    self.var_roll.get(),
-                    self.var_email.get(),
-                    self.var_teacher.get(),
-                    "Yes",
-                    self.var_std_id.get()
+                
+                # Cập nhật thông tin sinh viên và đánh dấu đã chụp ảnh
+                mycursor.execute("update student set Name=%s,Department=%s,Course=%s,Year=%s,Semester=%s,Division=%s,Gender=%s,DOB=%s,Mobile_No=%s,Address=%s,Roll_No=%s,Email=%s,Teacher_Name=%s,PhotoSample=%s where Student_ID=%s",(
+                self.var_std_name.get(),
+                self.var_dep.get(),
+                self.var_course.get(),
+                self.var_year.get(),
+                self.var_semester.get(),
+                self.var_div.get(),
+                self.var_gender.get(),
+                self.var_dob.get(),
+                self.var_mob.get(),
+                self.var_address.get(),
+                self.var_roll.get(),
+                self.var_email.get(),
+                self.var_teacher.get(),
+                self.var_radio1.get(),
+                self.var_std_id.get()
                 ))
                 conn.commit()
-                self.fetch_data()
-                self.reset_data()
-                conn.close()
-
-                # ====================part of opencv=======================
-
+                
+                # Bắt đầu chụp ảnh
                 face_classifier = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
-
+                
                 def face_croped(img):
-                    # conver gary sacle
                     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
                     faces = face_classifier.detectMultiScale(gray,1.3,5)
-                    #Scaling factor 1.3
-                    # Minimum naber 5
                     for (x,y,w,h) in faces:
                         face_croped=img[y:y+h,x:x+w]
                         return face_croped
+                
                 cap=cv2.VideoCapture(0)
                 img_id=0
+                
                 while True:
                     ret,my_frame=cap.read()
                     if face_croped(my_frame) is not None:
                         img_id+=1
                         face=cv2.resize(face_croped(my_frame),(200,200))
                         face=cv2.cvtColor(face,cv2.COLOR_BGR2GRAY)
-                        file_path="data_img/stdudent."+str(id)+"."+str(img_id)+".jpg"
-                        cv2.imwrite(file_path,face)
+                        
+                        # Chuyển ảnh thành dạng nhị phân để lưu vào MySQL
+                        _, img_encoded = cv2.imencode('.jpg', face)
+                        binary_data = img_encoded.tobytes()
+                        
+                        # Lưu ảnh vào database
+                        sql = "INSERT INTO student_images (student_id, image_data, image_number) VALUES (%s, %s, %s)"
+                        mycursor.execute(sql, (self.var_std_id.get(), binary_data, img_id))
+                        conn.commit()
+                        
+                        # Hiển thị ảnh đã chụp
                         cv2.putText(face,str(img_id),(50,50),cv2.FONT_HERSHEY_COMPLEX,2,(0,255,0),2)        
                         cv2.imshow("Capture Images",face)
 
                     if cv2.waitKey(1)==13 or int(img_id)==100:
                         break
+                        
                 cap.release()
                 cv2.destroyAllWindows()
-                messagebox.showinfo("Result","Generating dataset completed!",parent=self.root)
+                messagebox.showinfo("Result","Dataset Generation Completed!",parent=self.root)
+                
             except Exception as es:
-                messagebox.showerror("Error",f"Due to: {str(es)}",parent=self.root) 
+                messagebox.showerror("Error",f"Due to: {str(es)}",parent=self.root)
+            finally:
+                if conn is not None:
+                    conn.close()
 
     # Thêm phương thức toggle_fullscreen
     def toggle_fullscreen(self, event=None):

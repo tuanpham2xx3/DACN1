@@ -88,9 +88,9 @@ class Face_Recognition:
     #================face recognition==================
     def face_recog(self):
         def draw_boundray(img, classifier, scaleFactor, minNeighbors, color, text, clf):
-            # Chuyển đổi ảnh sang thang màu xám một lần
             gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            features = classifier.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+            # Điều chỉnh tham số để tăng cường phát hiện khuôn mặt
+            features = classifier.detectMultiScale(gray_image, scaleFactor=1.05, minNeighbors=4, minSize=(30, 30))
             
             if len(features) == 0:
                 return []
@@ -98,17 +98,30 @@ class Face_Recognition:
             coord = []
             
             for (x, y, w, h) in features:
-                # Cắt vùng khuôn mặt để tối ưu hiệu suất
-                face_region = gray_image[y:y+h, x:x+w]
+                # Tăng kích thước vùng khuôn mặt để cải thiện nhận diện
+                y_offset = max(0, y - int(0.1 * h))
+                h_new = min(gray_image.shape[0] - y_offset, int(1.2 * h))
+                x_offset = max(0, x - int(0.05 * w))
+                w_new = min(gray_image.shape[1] - x_offset, int(1.1 * w))
+                
+                face_region = gray_image[y_offset:y_offset+h_new, x_offset:x_offset+w_new]
+                
+                # Cải thiện độ tương phản trước khi nhận diện
+                face_region = cv2.equalizeHist(face_region)
                 
                 try:
+                    # Áp dụng cải thiện histogram trước khi nhận diện
                     id, predict = clf.predict(face_region)
+                    # Điều chỉnh công thức tính độ tin cậy để chính xác hơn
                     confidence = int((100 * (1 - predict / 300)))
+                    
+                    print(f"DEBUG: Face detected with ID={id}, Confidence={confidence}%")
                     
                     # Kết nối database trong khối try-except riêng
                     try:
-                        conn = mysql.connector.connect(username='root', password='12345', host='localhost', 
-                                                     database='face_recognition', port=3307, connect_timeout=3)
+                        conn = mysql.connector.connect(username='root', password='12345', 
+                                                     host='localhost', database='face_recognition', 
+                                                     port=3307, connect_timeout=3)
                         cursor = conn.cursor()
                         
                         # Sử dụng prepared statement để tránh SQL injection
@@ -118,10 +131,13 @@ class Face_Recognition:
                         
                         if result:
                             n, r, i = result
+                            print(f"Found in database: Name={n}, Roll={r}, ID={i}")
                         else:
+                            print(f"ID {id} not found in database")
                             n = r = i = "Unknown"
                             
                     except Exception as db_error:
+                        print(f"Database error: {str(db_error)}")
                         n = r = i = "Unknown"
                     finally:
                         if 'cursor' in locals() and cursor:
@@ -129,29 +145,25 @@ class Face_Recognition:
                         if 'conn' in locals() and conn:
                             conn.close()
                     
-                    # Hiển thị kết quả dựa trên mức độ tin cậy
-                    if confidence > 77:  # Tăng ngưỡng tin cậy lên 77%
-                        # Vẽ khung xanh cho khuôn mặt đã nhận diện
+                    # Giảm ngưỡng xuống 45% để dễ nhận diện hơn
+                    if confidence > 45:
                         cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                        
-                        # Hiển thị thông tin với nền để dễ đọc hơn
                         cv2.rectangle(img, (x, y-90), (x+w, y), (0, 255, 0), -1)
-                        cv2.putText(img, f"ID: {i}", (x+5, y-65), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-                        cv2.putText(img, f"Roll: {r}", (x+5, y-45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-                        cv2.putText(img, f"Name: {n}", (x+5, y-25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-                        cv2.putText(img, f"Conf: {confidence}%", (x+5, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                        cv2.putText(img, f"ID: {i}", (x+5, y-65), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                        cv2.putText(img, f"Roll: {r}", (x+5, y-45), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                        cv2.putText(img, f"Name: {n}", (x+5, y-25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                        cv2.putText(img, f"Conf: {confidence}%", (x+5, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
                         
-                        # Ghi nhận điểm danh
                         self.mark_attendance(i, r, n)
                     else:
-                        # Vẽ khung đỏ cho khuôn mặt không nhận diện được
                         cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
                         cv2.rectangle(img, (x, y-25), (x+w, y), (0, 0, 255), -1)
-                        cv2.putText(img, "Unknown", (x+5, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                        cv2.putText(img, "Unknown", (x+5, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
                     
                     coord = [x, y, w, h]
                     
                 except Exception as e:
+                    print(f"Processing error: {str(e)}")
                     cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
                     cv2.putText(img, "Processing Error", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             
@@ -185,7 +197,13 @@ class Face_Recognition:
                 return
             
             # Hiển thị thông báo 
-            messagebox.showinfo("Starting", "Face recognition started. Press Enter to exit.", parent=self.root)
+            messagebox.showinfo("Starting", "Face recognition started.\nPress 'f' để bật/tắt chế độ fullscreen.\nPress Enter (Return) để thoát.", parent=self.root)
+            
+            # Thiết lập cửa sổ mặc định
+            cv2.namedWindow("Face Recognition", cv2.WINDOW_NORMAL)
+            
+            # Trạng thái fullscreen
+            is_fullscreen = False
             
             # Bắt đầu vòng lặp camera
             while True:
@@ -193,9 +211,6 @@ class Face_Recognition:
                 if not ret:
                     messagebox.showerror("Error", "Failed to grab frame from camera!", parent=self.root)
                     break
-                    
-                # Resize ảnh để cải thiện hiệu suất
-                img = cv2.resize(img, (0, 0), fx=0.75, fy=0.75)
                 
                 # Xử lý nhận diện
                 img = recognize(img, clf, faceCascade)
@@ -203,14 +218,24 @@ class Face_Recognition:
                 # Hiển thị thời gian thực
                 now = datetime.now()
                 dt_string = now.strftime("%H:%M:%S")
-                cv2.putText(img, f"Time: {dt_string}", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.putText(img, f"Time: {dt_string}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                
+                # Hiển thị hướng dẫn
+                cv2.putText(img, "Press 'f' for fullscreen, Enter to exit", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
                 
                 # Hiển thị ảnh
                 cv2.imshow("Face Recognition", img)
                 
-                # Thoát khi nhấn Enter
-                if cv2.waitKey(1) == 13:
+                # Xử lý phím nhấn
+                key = cv2.waitKey(1)
+                if key == 13:  # Enter key
                     break
+                elif key == ord('f') or key == ord('F'):  # 'f' key để toggle fullscreen
+                    is_fullscreen = not is_fullscreen
+                    if is_fullscreen:
+                        cv2.setWindowProperty("Face Recognition", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                    else:
+                        cv2.setWindowProperty("Face Recognition", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
                     
             # Giải phóng tài nguyên
             videoCap.release()

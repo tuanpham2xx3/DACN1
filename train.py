@@ -75,12 +75,6 @@ class Train:
 
     # ==================Create Function of Traing===================
     def train_classifier(self):
-        data_dir = ("data_img")
-        # Kiểm tra thư mục
-        if not os.path.exists(data_dir):
-            messagebox.showerror("Error", "Dataset folder not found! Please create data_img folder first.", parent=self.root)
-            return
-
         # Hiển thị progress bar
         progress_label = Label(self.root, text="Training is in progress...", font=("verdana", 12, "bold"), bg="white", fg="navyblue")
         progress_label.place(x=500, y=120, width=300, height=30)
@@ -89,63 +83,61 @@ class Train:
         progress_bar.place(x=500, y=150, width=300, height=20)
         
         try:
-            # Lấy danh sách ảnh
-            path = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file.endswith(('.jpg', '.png', '.jpeg'))]
+            # Kết nối MySQL
+            conn = mysql.connector.connect(username='root', password='12345',host='localhost',database='face_recognition',port=3307)
+            cursor = conn.cursor()
             
-            if len(path) == 0:
-                messagebox.showerror("Error", "No images found in dataset folder!", parent=self.root)
+            # Lấy số lượng ảnh
+            cursor.execute("SELECT COUNT(*) FROM student_images")
+            total_images = cursor.fetchone()[0]
+            
+            if total_images == 0:
+                messagebox.showerror("Error", "No images found in database!", parent=self.root)
                 progress_label.destroy()
                 progress_bar.destroy()
                 return
             
             # Hiển thị thông tin
-            counts_label = Label(self.root, text=f"Found {len(path)} images to train", font=("verdana", 12), bg="white", fg="navyblue")
+            counts_label = Label(self.root, text=f"Found {total_images} images to train", font=("verdana", 12), bg="white", fg="navyblue")
             counts_label.place(x=500, y=180, width=300, height=20)
             
             # Chuẩn bị dữ liệu
             faces = []
             ids = []
-            total_images = len(path)
             
             # Cập nhật progress bar
             self.root.update()
             progress_bar["maximum"] = total_images
             progress_bar["value"] = 0
             
-            # Xử lý từng ảnh
-            for i, image_path in enumerate(path):
+            # Lấy tất cả ảnh từ database
+            cursor.execute("SELECT student_id, image_data FROM student_images")
+            results = cursor.fetchall()
+            
+            for i, (student_id, image_data) in enumerate(results):
                 try:
                     # Cập nhật progress
                     progress_bar["value"] = i + 1
                     progress_label.config(text=f"Processing image {i+1}/{total_images}")
                     self.root.update()
                     
-                    # Đọc và xử lý ảnh
-                    img = Image.open(image_path).convert('L')  # Chuyển sang ảnh grayscale
-                    img_np = np.array(img, 'uint8')
+                    # Chuyển đổi dữ liệu nhị phân thành ảnh
+                    nparr = np.frombuffer(image_data, np.uint8)
+                    img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
                     
-                    # Lấy ID từ tên file
-                    id = int(os.path.split(image_path)[1].split('.')[1])
-                    
-                    faces.append(img_np)
-                    ids.append(id)
+                    # Thêm vào danh sách huấn luyện
+                    faces.append(img)
+                    ids.append(int(student_id))
                     
                 except Exception as e:
-                    messagebox.showerror("Error", f"Error processing image {image_path}: {str(e)}", parent=self.root)
+                    messagebox.showerror("Error", f"Error processing image {i+1}: {str(e)}", parent=self.root)
                     continue
             
             # Kiểm tra dữ liệu trước khi training
             if len(faces) == 0:
                 messagebox.showerror("Error", "No valid faces found for training!", parent=self.root)
-                progress_label.destroy()
-                progress_bar.destroy()
-                counts_label.destroy()
                 return
                 
-            # Thông báo bắt đầu training
-            progress_label.config(text="Training classifier...")
-            self.root.update()
-            
             # Chuyển đổi sang numpy array
             ids = np.array(ids)
             
@@ -162,19 +154,21 @@ class Train:
             progress_bar["value"] = total_images
             self.root.update()
             
-            # Hiển thị hộp thoại thành công
             messagebox.showinfo("Success", f"Training completed with {len(faces)} images!", parent=self.root)
             
         except Exception as e:
             messagebox.showerror("Error", f"Error during training: {str(e)}", parent=self.root)
         finally:
-            # Dọn dẹp UI
+            # Dọn dẹp UI và đóng kết nối
             if 'progress_label' in locals():
                 progress_label.destroy()
             if 'progress_bar' in locals():
                 progress_bar.destroy()
             if 'counts_label' in locals():
                 counts_label.destroy()
+            if 'conn' in locals() and conn.is_connected():
+                cursor.close()
+                conn.close()
 
 
 
