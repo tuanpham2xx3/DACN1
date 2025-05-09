@@ -14,45 +14,60 @@ class Face_Recognition:
 
     def __init__(self,root):
         self.root=root
-        self.root.geometry("1366x768+0+0")
-        self.root.title("Face Recognition Pannel")
+        # Thiết lập toàn màn hình
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+        self.root.title("Face Recognition Panel")
+        
+        # Thêm phím tắt để thoát khỏi chế độ fullscreen (Esc)
+        self.root.bind("<Escape>", self.toggle_fullscreen)
 
         # This part is image labels setting start 
         # first header image  
         img=Image.open(r".\Images_GUI\banner.jpg")
-        img=img.resize((1366,130),Image.LANCZOS)
+        img=img.resize((screen_width,130),Image.LANCZOS)
         self.photoimg=ImageTk.PhotoImage(img)
 
         # set image as lable
         f_lb1 = Label(self.root,image=self.photoimg)
-        f_lb1.place(x=0,y=0,width=1366,height=130)
+        f_lb1.place(x=0,y=0,width=screen_width,height=130)
 
         # backgorund image 
         bg1=Image.open(r".\Images_GUI\bg2.jpg")
-        bg1=bg1.resize((1366,768),Image.LANCZOS)
+        bg1=bg1.resize((screen_width,screen_height),Image.LANCZOS)
         self.photobg1=ImageTk.PhotoImage(bg1)
 
         # set image as lable
         bg_img = Label(self.root,image=self.photobg1)
-        bg_img.place(x=0,y=130,width=1366,height=768)
+        bg_img.place(x=0,y=130,width=screen_width,height=screen_height-130)
 
 
         #title section
-        title_lb1 = Label(bg_img,text="Welcome to Face Recognition Pannel",font=("verdana",30,"bold"),bg="white",fg="navyblue")
-        title_lb1.place(x=0,y=0,width=1366,height=45)
+        title_lb1 = Label(bg_img,text="Welcome to Face Recognition Panel",font=("verdana",30,"bold"),bg="white",fg="navyblue")
+        title_lb1.place(x=0,y=0,width=screen_width,height=45)
 
+        # Căn giữa nút face detector
+        button_width = 180
+        button_height = 180
+        btn_x = (screen_width - button_width) // 2
+        
         # Create buttons below the section 
         # ------------------------------------------------------------------------------------------------------------------- 
         # Training button 1
         std_img_btn=Image.open(r".\Images_GUI\f_det.jpg")
-        std_img_btn=std_img_btn.resize((180,180),Image.LANCZOS)
+        std_img_btn=std_img_btn.resize((button_width,button_height),Image.LANCZOS)
         self.std_img1=ImageTk.PhotoImage(std_img_btn)
 
         std_b1 = Button(bg_img,command=self.face_recog,image=self.std_img1,cursor="hand2")
-        std_b1.place(x=600,y=170,width=180,height=180)
+        std_b1.place(x=btn_x,y=170,width=button_width,height=button_height)
 
         std_b1_1 = Button(bg_img,command=self.face_recog,text="Face Detector",cursor="hand2",font=("tahoma",15,"bold"),bg="white",fg="navyblue")
-        std_b1_1.place(x=600,y=350,width=180,height=45)
+        std_b1_1.place(x=btn_x,y=350,width=button_width,height=45)
+        
+        # Thêm hướng dẫn thoát fullscreen
+        exit_label = Label(bg_img, text="Press 'Esc' to toggle fullscreen mode", font=("verdana", 10), bg="white", fg="gray")
+        exit_label.place(x=screen_width-300, y=screen_height-180, width=280, height=20)
     #=====================Attendance===================
 
     def mark_attendance(self,i,r,n):
@@ -72,97 +87,147 @@ class Face_Recognition:
 
     #================face recognition==================
     def face_recog(self):
-        def draw_boundray(img,classifier,scaleFactor,minNeighbors,color,text,clf):
-            gray_image=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-            featuers=classifier.detectMultiScale(gray_image,scaleFactor=1.3,minNeighbors=5,minSize=(30,30))
-
-            coord=[]
+        def draw_boundray(img, classifier, scaleFactor, minNeighbors, color, text, clf):
+            # Chuyển đổi ảnh sang thang màu xám một lần
+            gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            features = classifier.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
             
-            for (x,y,w,h) in featuers:
-                cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),3)
-                id,predict=clf.predict(gray_image[y:y+h,x:x+w])
-
-                confidence=int((100*(1-predict/300)))
-
-                # Debug: In ra ID và confidence để kiểm tra
-                print(f"Detected ID: {id}, Confidence: {confidence}%")
-
+            if len(features) == 0:
+                return []
+            
+            coord = []
+            
+            for (x, y, w, h) in features:
+                # Cắt vùng khuôn mặt để tối ưu hiệu suất
+                face_region = gray_image[y:y+h, x:x+w]
+                
                 try:
-                    conn = mysql.connector.connect(username='root', password='12345',host='localhost',database='face_recognition',port=3307)
-                    cursor = conn.cursor()
-
-                    # Sửa câu lệnh SQL để in ra để debug
-                    query = f"SELECT Name, Roll_No, Student_ID FROM student WHERE Student_ID={str(id)}"
-                    print(f"Executing query: {query}")
+                    id, predict = clf.predict(face_region)
+                    confidence = int((100 * (1 - predict / 300)))
                     
-                    # Thực hiện một truy vấn duy nhất để lấy tất cả thông tin
-                    cursor.execute(query)
-                    result = cursor.fetchone()
-                    
-                    if result:
-                        n, r, i = result
-                        print(f"Database result: Name={n}, Roll={r}, ID={i}")
-                    else:
-                        print(f"No results found for ID={id}")
+                    # Kết nối database trong khối try-except riêng
+                    try:
+                        conn = mysql.connector.connect(username='root', password='12345', host='localhost', 
+                                                     database='face_recognition', port=3307, connect_timeout=3)
+                        cursor = conn.cursor()
+                        
+                        # Sử dụng prepared statement để tránh SQL injection
+                        query = "SELECT Name, Roll_No, Student_ID FROM student WHERE Student_ID=%s"
+                        cursor.execute(query, (str(id),))
+                        result = cursor.fetchone()
+                        
+                        if result:
+                            n, r, i = result
+                        else:
+                            n = r = i = "Unknown"
+                            
+                    except Exception as db_error:
                         n = r = i = "Unknown"
-
+                    finally:
+                        if 'cursor' in locals() and cursor:
+                            cursor.close()
+                        if 'conn' in locals() and conn:
+                            conn.close()
+                    
+                    # Hiển thị kết quả dựa trên mức độ tin cậy
+                    if confidence > 77:  # Tăng ngưỡng tin cậy lên 77%
+                        # Vẽ khung xanh cho khuôn mặt đã nhận diện
+                        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                        
+                        # Hiển thị thông tin với nền để dễ đọc hơn
+                        cv2.rectangle(img, (x, y-90), (x+w, y), (0, 255, 0), -1)
+                        cv2.putText(img, f"ID: {i}", (x+5, y-65), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                        cv2.putText(img, f"Roll: {r}", (x+5, y-45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                        cv2.putText(img, f"Name: {n}", (x+5, y-25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                        cv2.putText(img, f"Conf: {confidence}%", (x+5, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                        
+                        # Ghi nhận điểm danh
+                        self.mark_attendance(i, r, n)
+                    else:
+                        # Vẽ khung đỏ cho khuôn mặt không nhận diện được
+                        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                        cv2.rectangle(img, (x, y-25), (x+w, y), (0, 0, 255), -1)
+                        cv2.putText(img, "Unknown", (x+5, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                    
+                    coord = [x, y, w, h]
+                    
                 except Exception as e:
-                    print(f"Database error: {str(e)}")
-                    n = r = i = "Unknown"
-                finally:
-                    cursor.close()
-                    conn.close()
-
-                if confidence > 50:
-                    cv2.putText(img,f"ID:{i}",(x,y-75),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,255),3)
-                    cv2.putText(img,f"Roll:{r}",(x,y-55),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,255),3)
-                    cv2.putText(img,f"Name:{n}",(x,y-30),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,255),3)
-                    cv2.putText(img,f"Confidence:{confidence}%",(x,y-5),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,255),3)
-                    self.mark_attendance(i,r,n)
-                else:
-                    cv2.rectangle(img,(x,y),(x+w,y+h),(0,0,255),3)
-                    cv2.putText(img,"Unknown Face",(x,y-5),cv2.FONT_HERSHEY_COMPLEX,0.8,(255,255,0),3)    
-
-                coord=[x,y,w,y]
+                    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                    cv2.putText(img, "Processing Error", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             
             return coord
 
-
-        #==========
-        def recognize(img,clf,faceCascade):
-            coord=draw_boundray(img,faceCascade,1.1,10,(255,25,255),"Face",clf)
+        def recognize(img, clf, faceCascade):
+            coord = draw_boundray(img, faceCascade, 1.1, 10, (255, 25, 255), "Face", clf)
             return img
         
-        # Kiểm tra file clf.xml
+        # Kiểm tra các file cần thiết
         if not os.path.exists("clf.xml"):
-            messagebox.showerror("Error","Training file clf.xml not found!")
+            messagebox.showerror("Error", "Training file clf.xml not found! Please train the model first.", parent=self.root)
+            return
+        
+        if not os.path.exists("haarcascade_frontalface_default.xml"):
+            messagebox.showerror("Error", "Face detector file not found!", parent=self.root)
             return
         
         try:
-            # Load classifier với thông tin debug
-            clf=cv2.face.LBPHFaceRecognizer_create()
-            print("Loading training file...")
+            # Tải classifier
+            clf = cv2.face.LBPHFaceRecognizer_create()
             clf.read("clf.xml")
-            print("Training file loaded successfully")
             
-            faceCascade=cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
-
-            videoCap=cv2.VideoCapture(0)
-
+            # Tải bộ phát hiện khuôn mặt
+            faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+            
+            # Kiểm tra camera
+            videoCap = cv2.VideoCapture(0)
+            if not videoCap.isOpened():
+                messagebox.showerror("Error", "Cannot access camera! Please check your camera connection.", parent=self.root)
+                return
+            
+            # Hiển thị thông báo 
+            messagebox.showinfo("Starting", "Face recognition started. Press Enter to exit.", parent=self.root)
+            
+            # Bắt đầu vòng lặp camera
             while True:
-                ret,img=videoCap.read()
-                img=recognize(img,clf,faceCascade)
-                cv2.imshow("Face Detector",img)
-
+                ret, img = videoCap.read()
+                if not ret:
+                    messagebox.showerror("Error", "Failed to grab frame from camera!", parent=self.root)
+                    break
+                    
+                # Resize ảnh để cải thiện hiệu suất
+                img = cv2.resize(img, (0, 0), fx=0.75, fy=0.75)
+                
+                # Xử lý nhận diện
+                img = recognize(img, clf, faceCascade)
+                
+                # Hiển thị thời gian thực
+                now = datetime.now()
+                dt_string = now.strftime("%H:%M:%S")
+                cv2.putText(img, f"Time: {dt_string}", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                
+                # Hiển thị ảnh
+                cv2.imshow("Face Recognition", img)
+                
+                # Thoát khi nhấn Enter
                 if cv2.waitKey(1) == 13:
                     break
+                    
+            # Giải phóng tài nguyên
             videoCap.release()
             cv2.destroyAllWindows()
+            
         except Exception as e:
-            messagebox.showerror("Error",f"Error during face recognition: {str(e)}")
+            messagebox.showerror("Error", f"Error during face recognition: {str(e)}", parent=self.root)
+            # Đảm bảo giải phóng tài nguyên ngay cả khi có lỗi
+            if 'videoCap' in locals() and videoCap.isOpened():
+                videoCap.release()
+            cv2.destroyAllWindows()
 
-
-
+    def toggle_fullscreen(self, event=None):
+        """Chuyển đổi giữa chế độ fullscreen và không fullscreen"""
+        is_fullscreen = self.root.attributes('-fullscreen')
+        self.root.attributes('-fullscreen', not is_fullscreen)
+        return "break"
 
 if __name__ == "__main__":
     root=Tk()

@@ -20,8 +20,14 @@ conn.close()
 class Student:
     def __init__(self,root):
         self.root=root
-        self.root.geometry("1366x768+0+0")
-        self.root.title("Student Pannel")
+        # Thiết lập toàn màn hình
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+        self.root.title("Student Panel")
+        
+        # Thêm phím tắt để thoát khỏi chế độ fullscreen (Esc)
+        self.root.bind("<Escape>", self.toggle_fullscreen)
 
         #-----------Variables-------------------
         self.var_dep=StringVar()
@@ -42,34 +48,41 @@ class Student:
     # This part is image labels setting start 
         # first header image  
         img=Image.open(r".\Images_GUI\banner.jpg")
-        img=img.resize((1366,130),Image.LANCZOS)
+        img=img.resize((screen_width,130),Image.LANCZOS)
         self.photoimg=ImageTk.PhotoImage(img)
 
         # set image as lable
         f_lb1 = Label(self.root,image=self.photoimg)
-        f_lb1.place(x=0,y=0,width=1366,height=130)
+        f_lb1.place(x=0,y=0,width=screen_width,height=130)
 
          # backgorund image 
         bg1=Image.open(r".\Images_GUI\bg3.jpg")
-        bg1=bg1.resize((1366,768),Image.LANCZOS)
+        bg1=bg1.resize((screen_width,screen_height),Image.LANCZOS)
         self.photobg1=ImageTk.PhotoImage(bg1)
 
         # set image as lable
         bg_img = Label(self.root,image=self.photobg1)
-        bg_img.place(x=0,y=130,width=1366,height=768)
-
+        bg_img.place(x=0,y=130,width=screen_width,height=screen_height-130)
 
         #title section
-        title_lb1 = Label(bg_img,text="Welcome to Student Pannel",font=("verdana",30,"bold"),bg="white",fg="navyblue")
-        title_lb1.place(x=0,y=0,width=1366,height=45)
+        title_lb1 = Label(bg_img,text="Welcome to Student Panel",font=("verdana",30,"bold"),bg="white",fg="navyblue")
+        title_lb1.place(x=0,y=0,width=screen_width,height=45)
+        
+        # Tính toán kích thước khung chính dựa trên kích thước màn hình
+        main_frame_width = min(1355, screen_width - 10)
+        main_frame_height = min(510, screen_height - 250)
 
         # Creating Frame 
         main_frame = Frame(bg_img,bd=2,bg="white") #bd mean border 
-        main_frame.place(x=5,y=55,width=1355,height=510)
+        main_frame.place(x=(screen_width-main_frame_width)//2,y=55,width=main_frame_width,height=main_frame_height)
+        
+        # Tính toán kích thước cho các frame con
+        left_frame_width = main_frame_width // 2 - 15
+        right_frame_width = main_frame_width // 2 - 15
 
         # Left Label Frame 
         left_frame = LabelFrame(main_frame,bd=2,bg="white",relief=RIDGE,text="Student Details",font=("verdana",12,"bold"),fg="navyblue")
-        left_frame.place(x=10,y=10,width=660,height=480)
+        left_frame.place(x=10,y=10,width=left_frame_width,height=main_frame_height-20)
 
         # Current Course 
         current_course_frame = LabelFrame(left_frame,bd=2,bg="white",relief=RIDGE,text="Current Course",font=("verdana",12,"bold"),fg="navyblue")
@@ -328,8 +341,41 @@ class Student:
         self.fetch_data()
 # ==================Function Decleration==============================
     def add_data(self):
-        if self.var_dep.get()=="Select Department" or self.var_course.get=="Select Course" or self.var_year.get()=="Select Year" or self.var_semester.get()=="Select Semester" or self.var_std_id.get()=="" or self.var_std_name.get()=="" or self.var_div.get()=="" or self.var_roll.get()=="" or self.var_gender.get()=="" or self.var_dob.get()=="" or self.var_email.get()=="" or self.var_mob.get()=="" or self.var_address.get()=="" or self.var_teacher.get()=="":
-            messagebox.showerror("Error","Please Fill All Fields are Required!",parent=self.root)
+        # Kiểm tra từng trường dữ liệu và hiển thị lỗi cụ thể
+        missing_fields = []
+        
+        if self.var_dep.get()=="Select Department":
+            missing_fields.append("Department")
+        if self.var_course.get()=="Select Course":
+            missing_fields.append("Course")
+        if self.var_year.get()=="Select Year":
+            missing_fields.append("Year")
+        if self.var_semester.get()=="Select Semester":
+            missing_fields.append("Semester")
+        if self.var_std_id.get()=="":
+            missing_fields.append("Student ID")
+        if self.var_std_name.get()=="":
+            missing_fields.append("Student Name")
+        if self.var_div.get()=="":
+            missing_fields.append("Division")
+        if self.var_roll.get()=="":
+            missing_fields.append("Roll No")
+        if self.var_gender.get()=="":
+            missing_fields.append("Gender")
+        if self.var_dob.get()=="":
+            missing_fields.append("Date of Birth")
+        if self.var_email.get()=="":
+            missing_fields.append("Email")
+        if self.var_mob.get()=="":
+            missing_fields.append("Mobile No")
+        if self.var_address.get()=="":
+            missing_fields.append("Address")
+        if self.var_teacher.get()=="":
+            missing_fields.append("Teacher Name")
+        
+        if missing_fields:
+            error_msg = "Please fill these fields: " + ", ".join(missing_fields)
+            messagebox.showerror("Error", error_msg, parent=self.root)
         else:
             try:
                 conn = mysql.connector.connect(username='root', password='12345',host='localhost',database='face_recognition',port=3307)
@@ -355,9 +401,9 @@ class Student:
                 conn.commit()
                 self.fetch_data()
                 conn.close()
-                messagebox.showinfo("Success","All Records are Saved!",parent=self.root)
+                messagebox.showinfo("Success","Student record saved successfully!",parent=self.root)
             except Exception as es:
-                messagebox.showerror("Error",f"Due to: {str(es)}",parent=self.root)
+                messagebox.showerror("Error",f"Database error: {str(es)}",parent=self.root)
 
     # ===========================Fetch data form database to table ================================
 
@@ -399,40 +445,76 @@ class Student:
         self.var_radio1.set(data[14])
     # ========================================Update Function==========================
     def update_data(self):
-        if self.var_dep.get()=="Select Department" or self.var_course.get=="Select Course" or self.var_year.get()=="Select Year" or self.var_semester.get()=="Select Semester" or self.var_std_id.get()=="" or self.var_std_name.get()=="" or self.var_div.get()=="" or self.var_roll.get()=="" or self.var_gender.get()=="" or self.var_dob.get()=="" or self.var_email.get()=="" or self.var_mob.get()=="" or self.var_address.get()=="" or self.var_teacher.get()=="":
-            messagebox.showerror("Error","Please Fill All Fields are Required!",parent=self.root)
+        # Kiểm tra từng trường dữ liệu và hiển thị lỗi cụ thể
+        missing_fields = []
+        
+        if self.var_dep.get()=="Select Department":
+            missing_fields.append("Department")
+        if self.var_course.get()=="Select Course":
+            missing_fields.append("Course")
+        if self.var_year.get()=="Select Year":
+            missing_fields.append("Year")
+        if self.var_semester.get()=="Select Semester":
+            missing_fields.append("Semester")
+        if self.var_std_id.get()=="":
+            missing_fields.append("Student ID")
+        if self.var_std_name.get()=="":
+            missing_fields.append("Student Name")
+        if self.var_div.get()=="":
+            missing_fields.append("Division")
+        if self.var_roll.get()=="":
+            missing_fields.append("Roll No")
+        if self.var_gender.get()=="":
+            missing_fields.append("Gender")
+        if self.var_dob.get()=="":
+            missing_fields.append("Date of Birth")
+        if self.var_email.get()=="":
+            missing_fields.append("Email")
+        if self.var_mob.get()=="":
+            missing_fields.append("Mobile No")
+        if self.var_address.get()=="":
+            missing_fields.append("Address")
+        if self.var_teacher.get()=="":
+            missing_fields.append("Teacher Name")
+        
+        if missing_fields:
+            error_msg = "Please fill these fields: " + ", ".join(missing_fields)
+            messagebox.showerror("Error", error_msg, parent=self.root)
         else:
             try:
-                Update=messagebox.askyesno("Update","Do you want to Update this Student Details!",parent=self.root)
+                Update=messagebox.askyesno("Update","Do you want to update this student record?",parent=self.root)
                 if Update > 0:
-                    conn = mysql.connector.connect(username='root', password='12345',host='localhost',database='face_recognition',port=3307)
-                    mycursor = conn.cursor()
-                    mycursor.execute("update student set Name=%s,Department=%s,Course=%s,Year=%s,Semester=%s,Division=%s,Gender=%s,DOB=%s,Mobile_No=%s,Address=%s,Roll_No=%s,Email=%s,Teacher_Name=%s,PhotoSample=%s where Student_ID=%s",( 
-                    self.var_std_name.get(),
-                    self.var_dep.get(),
-                    self.var_course.get(),
-                    self.var_year.get(),
-                    self.var_semester.get(),
-                    self.var_div.get(),
-                    self.var_gender.get(),
-                    self.var_dob.get(),
-                    self.var_mob.get(),
-                    self.var_address.get(),
-                    self.var_roll.get(),
-                    self.var_email.get(),
-                    self.var_teacher.get(),
-                    self.var_radio1.get(),
-                    self.var_std_id.get()   
-                    ))
-                else:
-                    if not Update:
-                        return
-                messagebox.showinfo("Success","Successfully Updated!",parent=self.root)
-                conn.commit()
-                self.fetch_data()
-                conn.close()
-            except Exception as es:
-                messagebox.showerror("Error",f"Due to: {str(es)}",parent=self.root)
+                    conn = None
+                    try:
+                        conn = mysql.connector.connect(username='root', password='12345',host='localhost',database='face_recognition',port=3307)
+                        mycursor = conn.cursor()
+                        mycursor.execute("update student set Name=%s,Department=%s,Course=%s,Year=%s,Semester=%s,Division=%s,Gender=%s,DOB=%s,Mobile_No=%s,Address=%s,Roll_No=%s,Email=%s,Teacher_Name=%s,PhotoSample=%s where Student_ID=%s",( 
+                        self.var_std_name.get(),
+                        self.var_dep.get(),
+                        self.var_course.get(),
+                        self.var_year.get(),
+                        self.var_semester.get(),
+                        self.var_div.get(),
+                        self.var_gender.get(),
+                        self.var_dob.get(),
+                        self.var_mob.get(),
+                        self.var_address.get(),
+                        self.var_roll.get(),
+                        self.var_email.get(),
+                        self.var_teacher.get(),
+                        self.var_radio1.get(),
+                        self.var_std_id.get()   
+                        ))
+                        conn.commit()
+                        self.fetch_data()
+                        messagebox.showinfo("Success","Student record updated successfully!",parent=self.root)
+                    except Exception as es:
+                        messagebox.showerror("Error",f"Database error: {str(es)}",parent=self.root)
+                    finally:
+                        if conn is not None:
+                            conn.close()
+            except Exception as e:
+                messagebox.showerror("Error",f"An error occurred: {str(e)}",parent=self.root)
     
     #==============================Delete Function=========================================
     def delete_data(self):
@@ -571,6 +653,12 @@ class Student:
             except Exception as es:
                 messagebox.showerror("Error",f"Due to: {str(es)}",parent=self.root) 
 
+    # Thêm phương thức toggle_fullscreen
+    def toggle_fullscreen(self, event=None):
+        """Chuyển đổi giữa chế độ fullscreen và không fullscreen"""
+        is_fullscreen = self.root.attributes('-fullscreen')
+        self.root.attributes('-fullscreen', not is_fullscreen)
+        return "break"
 
 # main class object
 
