@@ -31,6 +31,16 @@ class Train:
         f_lb1 = Label(self.root,image=self.photoimg)
         f_lb1.place(x=0,y=0,width=screen_width,height=130)
 
+        # Thêm nút thoát góc phải trên (nằm trên banner)
+        exit_btn = Button(self.root, text="×", command=self.exit_window, 
+                          font=("Arial", 16, "bold"), 
+                          fg="white", bg="#E81123", 
+                          cursor="hand2", 
+                          bd=0,                     # Không có viền
+                          relief=FLAT,              # Kiểu nút phẳng
+                          width=3, height=1)
+        exit_btn.place(x=screen_width-50, y=10, width=40, height=40)
+
         # backgorund image 
         bg1=Image.open(r".\Images_GUI\t_bg1.jpg")
         bg1=bg1.resize((screen_width,screen_height),Image.LANCZOS)
@@ -42,8 +52,8 @@ class Train:
 
 
         #title section
-        title_lb1 = Label(bg_img,text="Welcome to Training Panel",font=("verdana",30,"bold"),bg="white",fg="navyblue")
-        title_lb1.place(x=0,y=0,width=screen_width,height=45)
+        title_lb1 = Label(bg_img,text="Huấn Luyện Dữ Liệu",font=("Times New Roman",32,"bold"),bg="white",fg="#00008B")
+        title_lb1.place(x=0,y=0,width=screen_width,height=50)
 
         # Căn giữa nút train
         button_width = 180
@@ -60,23 +70,27 @@ class Train:
         std_b1 = Button(bg_img,command=self.train_classifier,image=self.std_img1,cursor="hand2")
         std_b1.place(x=btn_x,y=170,width=button_width,height=button_height)
 
-        std_b1_1 = Button(bg_img,command=self.train_classifier,text="Train Dataset",cursor="hand2",font=("tahoma",15,"bold"),bg="white",fg="navyblue")
-        std_b1_1.place(x=btn_x,y=350,width=button_width,height=45)
+        std_b1_1 = Button(bg_img,command=self.train_classifier,text="Huấn Luyện Dữ Liệu",cursor="hand2",font=("Times New Roman",13,"bold"),bg="white",fg="#00008B")
+        std_b1_1.place(x=btn_x,y=350,width=button_width,height=50)
         
         # Thêm hướng dẫn thoát fullscreen
-        exit_label = Label(bg_img, text="Press 'Esc' to toggle fullscreen mode", font=("verdana", 10), bg="white", fg="gray")
-        exit_label.place(x=screen_width-300, y=screen_height-180, width=280, height=20)
+        exit_label = Label(bg_img, text="Nhấn 'Esc' để bật/tắt chế độ toàn màn hình", font=("verdana", 10), bg="white", fg="gray")
+        exit_label.place(x=screen_width-350, y=screen_height-180, width=330, height=20)
     
     def toggle_fullscreen(self, event=None):
         """Chuyển đổi giữa chế độ fullscreen và không fullscreen"""
         is_fullscreen = self.root.attributes('-fullscreen')
         self.root.attributes('-fullscreen', not is_fullscreen)
         return "break"
+        
+    # Exit current window and return to main menu
+    def exit_window(self):
+        self.root.destroy()
 
     # ==================Create Function of Traing===================
     def train_classifier(self):
         # Hiển thị progress bar
-        progress_label = Label(self.root, text="Training is in progress...", font=("verdana", 12, "bold"), bg="white", fg="navyblue")
+        progress_label = Label(self.root, text="Đang huấn luyện dữ liệu...", font=("Times New Roman", 12, "bold"), bg="white", fg="#00008B")
         progress_label.place(x=500, y=120, width=300, height=30)
         
         progress_bar = ttk.Progressbar(self.root, orient=HORIZONTAL, length=250, mode='determinate')
@@ -92,13 +106,13 @@ class Train:
             total_images = cursor.fetchone()[0]
             
             if total_images == 0:
-                messagebox.showerror("Error", "No images found in database!", parent=self.root)
+                messagebox.showerror("Lỗi", "Không tìm thấy ảnh trong cơ sở dữ liệu!", parent=self.root)
                 progress_label.destroy()
                 progress_bar.destroy()
                 return
             
             # Hiển thị thông tin
-            counts_label = Label(self.root, text=f"Found {total_images} images to train", font=("verdana", 12), bg="white", fg="navyblue")
+            counts_label = Label(self.root, text=f"Tìm thấy {total_images} ảnh để huấn luyện", font=("Times New Roman", 12), bg="white", fg="#00008B")
             counts_label.place(x=500, y=180, width=300, height=20)
             
             # Chuẩn bị dữ liệu
@@ -118,7 +132,7 @@ class Train:
                 try:
                     # Cập nhật progress
                     progress_bar["value"] = i + 1
-                    progress_label.config(text=f"Processing image {i+1}/{total_images}")
+                    progress_label.config(text=f"Đang xử lý ảnh {i+1}/{total_images}")
                     self.root.update()
                     
                     # Chuyển đổi dữ liệu nhị phân thành ảnh
@@ -130,12 +144,12 @@ class Train:
                     ids.append(int(student_id))
                     
                 except Exception as e:
-                    messagebox.showerror("Error", f"Error processing image {i+1}: {str(e)}", parent=self.root)
+                    messagebox.showerror("Lỗi", f"Lỗi khi xử lý ảnh {i+1}: {str(e)}", parent=self.root)
                     continue
             
             # Kiểm tra dữ liệu trước khi training
             if len(faces) == 0:
-                messagebox.showerror("Error", "No valid faces found for training!", parent=self.root)
+                messagebox.showerror("Lỗi", "Không tìm thấy khuôn mặt hợp lệ để huấn luyện!", parent=self.root)
                 return
                 
             # Chuyển đổi sang numpy array
@@ -150,14 +164,14 @@ class Train:
             clf.write(clf_path)
             
             # Hiển thị thông báo thành công
-            progress_label.config(text="Training completed successfully!")
+            progress_label.config(text="Huấn luyện hoàn tất thành công!")
             progress_bar["value"] = total_images
             self.root.update()
             
-            messagebox.showinfo("Success", f"Training completed with {len(faces)} images!", parent=self.root)
+            messagebox.showinfo("Thành công", f"Huấn luyện hoàn tất với {len(faces)} ảnh!", parent=self.root)
             
         except Exception as e:
-            messagebox.showerror("Error", f"Error during training: {str(e)}", parent=self.root)
+            messagebox.showerror("Lỗi", f"Lỗi trong quá trình huấn luyện: {str(e)}", parent=self.root)
         finally:
             # Dọn dẹp UI và đóng kết nối
             if 'progress_label' in locals():

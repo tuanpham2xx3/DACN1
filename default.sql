@@ -37,3 +37,18 @@ CREATE TABLE student_images (
   FOREIGN KEY (student_id) REFERENCES student(Student_ID),
   INDEX (student_id, image_number)
 );
+
+-- Xóa bảng stdattendance cũ nếu có
+DROP TABLE IF EXISTS stdattendance;
+
+-- Tạo bảng lưu thông tin điểm danh với cấu trúc mới
+CREATE TABLE stdattendance (
+    std_id VARCHAR(20) NOT NULL,
+    std_roll_no VARCHAR(20) NOT NULL,
+    std_name VARCHAR(50) NOT NULL,
+    std_time VARCHAR(50) NOT NULL,
+    std_date VARCHAR(50) NOT NULL,
+    std_session VARCHAR(20) NOT NULL, -- Thêm cột buổi (sáng/chiều)
+    std_attendance VARCHAR(10) NOT NULL,
+    PRIMARY KEY (std_id, std_date, std_session) -- Thay đổi primary key để bao gồm buổi
+);
