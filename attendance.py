@@ -74,7 +74,7 @@ class Attendance:
 
 
         #title section
-        title_lb1 = Label(bg_img,text="Quản Lý Điểm Danh",font=("Times New Roman",30,"bold"),bg="white",fg="#00008B")
+        title_lb1 = Label(bg_img,text="Quản Lý Điểm Danh",font=("Times New Roman",30,"bold"),bg="#00008B",fg="white")
         title_lb1.place(x=0,y=0,width=screen_width,height=50)
 
         #========================Section Creating==================================
@@ -101,14 +101,14 @@ class Attendance:
         entry_frame.place(x=10, y=5, width=left_frame_width-20, height=90)  # Tăng chiều cao để chứa 2 hàng
 
         #Student id - Hàng 1
-        studentId_label = Label(entry_frame,text="Mã SV:",font=("verdana",10,"bold"),fg="navy",bg="alice blue")
+        studentId_label = Label(entry_frame,text="ID SV:",font=("verdana",10,"bold"),fg="navy",bg="alice blue")
         studentId_label.grid(row=0,column=0,padx=5,pady=5,sticky=W)
 
         studentId_entry = ttk.Entry(entry_frame,textvariable=self.var_id,width=15,font=("verdana",10))
         studentId_entry.grid(row=0,column=1,padx=5,pady=5,sticky=W)
 
         #Student Roll - Hàng 1
-        student_roll_label = Label(entry_frame,text="Mã số:",font=("verdana",10,"bold"),fg="navy",bg="alice blue")
+        student_roll_label = Label(entry_frame,text="Mã SV:",font=("verdana",10,"bold"),fg="navy",bg="alice blue")
         student_roll_label.grid(row=0,column=2,padx=5,pady=5,sticky=W)
 
         student_roll_entry = ttk.Entry(entry_frame,textvariable=self.var_roll,width=15,font=("verdana",10))
@@ -161,8 +161,8 @@ class Attendance:
         scroll_x.config(command=self.attendanceReport_left.xview)
         scroll_y.config(command=self.attendanceReport_left.yview)
 
-        self.attendanceReport_left.heading("ID",text="Mã SV")
-        self.attendanceReport_left.heading("Roll_No",text="Mã số")
+        self.attendanceReport_left.heading("ID",text="ID SV")
+        self.attendanceReport_left.heading("Roll_No",text="Mã SV")
         self.attendanceReport_left.heading("Name",text="Họ tên")
         self.attendanceReport_left.heading("Time",text="Giờ")
         self.attendanceReport_left.heading("Date",text="Ngày")
@@ -291,8 +291,8 @@ class Attendance:
         scroll_y.config(command=self.attendanceReport.yview)
 
         # Điều chỉnh tên các cột trong bảng sang tiếng Việt
-        self.attendanceReport.heading("ID",text="Mã SV")
-        self.attendanceReport.heading("Roll_No",text="Mã số")
+        self.attendanceReport.heading("ID",text="ID SV")
+        self.attendanceReport.heading("Roll_No",text="Mã SV")
         self.attendanceReport.heading("Name",text="Họ tên")
         self.attendanceReport.heading("Time",text="Giờ")
         self.attendanceReport.heading("Date",text="Ngày")

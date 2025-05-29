@@ -75,7 +75,7 @@ class Student:
         bg_img.place(x=0,y=130,width=screen_width,height=screen_height-130)
 
         #title section
-        title_lb1 = Label(bg_img,text="Quản Lý Thông Tin Sinh Viên",font=("Times New Roman",32,"bold"),bg="white",fg="#00008B")
+        title_lb1 = Label(bg_img,text="Quản Lý Thông Tin Sinh Viên",font=("Times New Roman",32,"bold"),bg="#00008B",fg="white")
         title_lb1.place(x=0,y=0,width=screen_width,height=50)
         
         # Tính toán kích thước khung chính dựa trên kích thước màn hình
@@ -161,7 +161,7 @@ class Student:
         detail_pady = 3          # Giảm từ 5 xuống 3
         
         #Student id
-        studentId_label = Label(class_Student_frame,text="Mã SV:",font=("Times New Roman",12,"bold"),fg="#00008B",bg="white", width=detail_label_width, anchor=E)
+        studentId_label = Label(class_Student_frame,text="ID SV:",font=("Times New Roman",12,"bold"),fg="#00008B",bg="white", width=detail_label_width, anchor=E)
         studentId_label.grid(row=0,column=0,padx=detail_padx,pady=detail_pady,sticky=W)
 
         studentId_entry = ttk.Entry(class_Student_frame,textvariable=self.var_std_id,width=detail_field_width,font=("Times New Roman",12,"bold"))
@@ -184,7 +184,7 @@ class Student:
         div_combo.grid(row=1,column=1,padx=detail_padx,pady=detail_pady,sticky=W)
 
         #Roll No
-        student_roll_label = Label(class_Student_frame,text="Mã số:",font=("Times New Roman",12,"bold"),fg="#00008B",bg="white", width=detail_label_width, anchor=E)
+        student_roll_label = Label(class_Student_frame,text="Mã SV:",font=("Times New Roman",12,"bold"),fg="#00008B",bg="white", width=detail_label_width, anchor=E)
         student_roll_label.grid(row=1,column=2,padx=detail_padx,pady=detail_pady,sticky=W)
 
         student_roll_entry = ttk.Entry(class_Student_frame,textvariable=self.var_roll,width=detail_field_width,font=("Times New Roman",12,"bold"))
@@ -284,7 +284,7 @@ class Student:
         take_photo_btn.grid(row=0,column=4,padx=btn_padx,pady=10,sticky=W)
 
         #update photo button
-        update_photo_btn=Button(btn_frame,text="Cập nhật ảnh",width=13,font=("Times New Roman",12,"bold"),fg="white",bg="#00008B", relief=RAISED)
+        update_photo_btn=Button(btn_frame,command=self.update_photo,text="Cập nhật ảnh",width=13,font=("Times New Roman",12,"bold"),fg="white",bg="#00008B", relief=RAISED)
         update_photo_btn.grid(row=0,column=5,padx=btn_padx,pady=10,sticky=W)
 
         #----------------------------------------------------------------------
@@ -309,7 +309,7 @@ class Student:
         
         #combo box 
         search_combo=ttk.Combobox(search_frame,textvariable=self.var_searchTX,width=15,font=("Times New Roman",12,"bold"),state="readonly")
-        search_combo["values"]=("Chọn","Mã SV","Mã số","Họ tên","Lớp","Năm học","Ngành")
+        search_combo["values"]=("Chọn","ID SV","Mã SV","Họ tên","Lớp","Năm học","Ngành")
         search_combo.current(0)
         search_combo.grid(row=0,column=1,padx=search_padx,pady=search_pady,sticky=W)
 
@@ -383,7 +383,7 @@ class Student:
         style.configure("Treeview.Heading", font=('Times New Roman', 12, 'bold'))
         
         # Đặt tiêu đề cột
-        self.student_table.heading("ID",text="Mã SV")
+        self.student_table.heading("ID",text="ID SV")
         self.student_table.heading("Name",text="Họ tên")
         self.student_table.heading("Dep",text="Khoa")
         self.student_table.heading("Course",text="Ngành")
@@ -394,7 +394,7 @@ class Student:
         self.student_table.heading("DOB",text="Ngày sinh")
         self.student_table.heading("Mob-No",text="SĐT")
         self.student_table.heading("Address",text="Địa chỉ")
-        self.student_table.heading("Roll-No",text="Mã số")
+        self.student_table.heading("Roll-No",text="Mã SV")
         self.student_table.heading("Email",text="Email")
         self.student_table.heading("Teacher",text="Giảng viên")
         self.student_table.heading("Photo",text="Hình ảnh")
@@ -427,13 +427,13 @@ class Student:
         if self.var_semester.get()=="Chọn Học kỳ":
             missing_fields.append("Học kỳ")
         if self.var_std_id.get()=="":
-            missing_fields.append("Mã SV")
+            missing_fields.append("ID SV")
         if self.var_std_name.get()=="":
             missing_fields.append("Họ tên")
         if self.var_div.get()=="":
             missing_fields.append("Lớp")
         if self.var_roll.get()=="":
-            missing_fields.append("Mã số")
+            missing_fields.append("Mã SV")
         if self.var_gender.get()=="":
             missing_fields.append("Giới tính")
         if self.var_dob.get()=="":
@@ -546,13 +546,13 @@ class Student:
         if self.var_semester.get()=="Chọn Học kỳ":
             missing_fields.append("Học kỳ")
         if self.var_std_id.get()=="":
-            missing_fields.append("Mã SV")
+            missing_fields.append("ID SV")
         if self.var_std_name.get()=="":
             missing_fields.append("Họ tên")
         if self.var_div.get()=="":
             missing_fields.append("Lớp")
         if self.var_roll.get()=="":
-            missing_fields.append("Mã số")
+            missing_fields.append("Mã SV")
         if self.var_gender.get()=="":
             missing_fields.append("Giới tính")
         if self.var_dob.get()=="":
@@ -658,9 +658,9 @@ class Student:
                 
                 # Xác định cột tìm kiếm dựa trên lựa chọn
                 search_column = ""
-                if self.var_searchTX.get() == "Mã SV":
+                if self.var_searchTX.get() == "ID SV":
                     search_column = "Student_ID"
-                elif self.var_searchTX.get() == "Mã số":
+                elif self.var_searchTX.get() == "Mã SV":
                     search_column = "Roll_No"
                 elif self.var_searchTX.get() == "Họ tên":
                     search_column = "Name"
@@ -765,6 +765,83 @@ class Student:
             finally:
                 if conn is not None:
                     conn.close()
+
+    # Thêm hàm update_photo để xóa ảnh cũ và chụp ảnh mới
+    def update_photo(self):
+        # Kiểm tra xem có ID sinh viên được chọn không
+        if self.var_std_id.get()=="":
+            messagebox.showerror("Lỗi","Vui lòng chọn sinh viên trước khi cập nhật ảnh!",parent=self.root)
+            return
+        
+        # Xác nhận từ người dùng
+        update = messagebox.askyesno("Cập nhật ảnh", f"Bạn có muốn xóa tất cả ảnh cũ và chụp ảnh mới cho sinh viên {self.var_std_name.get()}?", parent=self.root)
+        if not update:
+            return
+        
+        try:
+            conn = mysql.connector.connect(username='root', password='12345',host='localhost',database='face_recognition',port=3307)
+            mycursor = conn.cursor()
+            
+            # Xóa tất cả ảnh cũ của sinh viên theo ID
+            mycursor.execute("DELETE FROM student_images WHERE student_id=%s", (self.var_std_id.get(),))
+            conn.commit()
+            
+            # Đánh dấu sinh viên có ảnh
+            self.var_radio1.set("Yes")
+            mycursor.execute("UPDATE student SET PhotoSample='Yes' WHERE Student_ID=%s", (self.var_std_id.get(),))
+            conn.commit()
+            
+            # Bắt đầu chụp ảnh mới
+            face_classifier = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+            
+            def face_croped(img):
+                gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+                faces = face_classifier.detectMultiScale(gray,1.3,5)
+                for (x,y,w,h) in faces:
+                    face_croped=img[y:y+h,x:x+w]
+                    return face_croped
+            
+            cap=cv2.VideoCapture(0)
+            img_id=0
+            
+            # Hiển thị thông báo lớn 
+            messagebox.showinfo("Hướng dẫn", "Bắt đầu chụp ảnh mới!\n- Di chuyển khuôn mặt theo nhiều góc khác nhau\n- Nhấn Enter để kết thúc sớm hoặc chờ chụp đủ 100 ảnh", parent=self.root)
+            
+            while True:
+                ret,my_frame=cap.read()
+                if face_croped(my_frame) is not None:
+                    img_id+=1
+                    face=cv2.resize(face_croped(my_frame),(200,200))
+                    face=cv2.cvtColor(face,cv2.COLOR_BGR2GRAY)
+                    
+                    # Chuyển ảnh thành dạng nhị phân để lưu vào MySQL
+                    _, img_encoded = cv2.imencode('.jpg', face)
+                    binary_data = img_encoded.tobytes()
+                    
+                    # Lưu ảnh vào database
+                    sql = "INSERT INTO student_images (student_id, image_data, image_number) VALUES (%s, %s, %s)"
+                    mycursor.execute(sql, (self.var_std_id.get(), binary_data, img_id))
+                    conn.commit()
+                    
+                    # Hiển thị ảnh đã chụp và số lượng
+                    cv2.putText(face,f"Image: {img_id}/100",(10,20),cv2.FONT_HERSHEY_COMPLEX,0.8,(0,255,0),2)        
+                    cv2.imshow("Cập nhật khuôn mặt",face)
+
+                if cv2.waitKey(1)==13 or int(img_id)==100:
+                    break
+                    
+            cap.release()
+            cv2.destroyAllWindows()
+            
+            # Cập nhật trạng thái sinh viên
+            self.fetch_data()
+            messagebox.showinfo("Thành công",f"Đã cập nhật {img_id} ảnh khuôn mặt cho sinh viên {self.var_std_name.get()}!",parent=self.root)
+            
+        except Exception as es:
+            messagebox.showerror("Lỗi",f"Lỗi khi cập nhật ảnh: {str(es)}",parent=self.root)
+        finally:
+            if 'conn' in locals() and conn is not None:
+                conn.close()
 
     # Thêm phương thức toggle_fullscreen
     def toggle_fullscreen(self, event=None):

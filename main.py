@@ -73,7 +73,6 @@ class Face_Recognition_System:
                 (r".\Images_GUI\std1.jpg", "std_img1"),
                 (r".\Images_GUI\det1.jpg", "det_img1"),
                 (r".\Images_GUI\att.jpg", "att_img1"),
-                (r".\Images_GUI\hlp.jpg", "hlp_img1"),
                 (r".\Images_GUI\tra1.jpg", "tra_img1"),
                 (r".\Images_GUI\exi.jpg", "exi_img1")
             ]
@@ -107,7 +106,7 @@ class Face_Recognition_System:
         # Tiêu đề - Việt hóa
         title_lb1 = Label(bg_img, text="Hệ Thống Điểm Danh Bằng Nhận Diện Khuôn Mặt", 
                           font=("Times New Roman", 30, "bold"), 
-                          bg="white", fg="#00008B")
+                          bg="#00008B", fg="white")
         title_lb1.place(x=0, y=0, width=screen_width, height=45)
 
         # Tính toán vị trí các nút để căn giữa

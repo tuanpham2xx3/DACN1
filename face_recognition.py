@@ -1,4 +1,3 @@
-# import re
 from sys import path
 from tkinter import*
 from tkinter import ttk
@@ -54,7 +53,7 @@ class Face_Recognition:
 
 
         #title section
-        title_lb1 = Label(bg_img,text="Chào mừng đến với hệ thống Nhận Diện Khuôn Mặt",font=("Times New Roman",30,"bold"),bg="white",fg="#00008B")
+        title_lb1 = Label(bg_img,text="Nhận Diện Khuôn Mặt",font=("Times New Roman",30,"bold"),bg="#00008B",fg="white")
         title_lb1.place(x=0,y=0,width=screen_width,height=50)
 
         # Căn giữa nút face detector
@@ -104,10 +103,10 @@ class Face_Recognition:
                     
                     # Thêm bản ghi mới vào CSV - KHÔNG lưu buổi
                     f.writelines(f"\n{i}, {r}, {n}, {dtString}, {d1}, Co mat")
-                    print(f"[INFO] Đã ghi điểm danh vào file CSV: ID={i}, Name={n}")
+                    print(f"[INFO] Da ghi diem danh vao file CSV: ID={i}, Name={n}")
 
                     # Ghi log kết quả điểm danh
-                    print(f"[SUCCESS] Điểm danh thành công cho: {n} (ID: {i})")
+                    print(f"[SUCCESS] Diem danh thanh cong cho: {n} (ID: {i})")
                     
                     # Xác định buổi từ thời gian - CHỈ để lưu vào MySQL
                     hour = int(dtString.split(":")[0])
@@ -130,14 +129,14 @@ class Face_Recognition:
                             mycursor.execute("INSERT INTO stdattendance (std_id, std_roll_no, std_name, std_time, std_date, std_session, std_attendance) VALUES (%s,%s,%s,%s,%s,%s,%s)",
                                             (i, r, n, dtString, d1, session, "Co mat"))
                             conn.commit()
-                            print(f"[INFO] Đã lưu điểm danh vào MySQL: ID={i}, Name={n}, Buổi={session}")
+                            print(f"[INFO] Da luu diem danh vao MySQL: ID={i}, Name={n}, Buoi={session}")
                         conn.close()
                     except Exception as db_err:
-                        print(f"[WARNING] Không thể lưu vào MySQL (không ảnh hưởng đến điểm danh): {str(db_err)}")
+                        print(f"[WARNING] Khong the luu vao MySQL (khong anh huong den diem danh): {str(db_err)}")
                 else:
-                    print(f"[INFO] {n} (ID: {i}) đã được điểm danh trước đó.")
+                    print(f"[INFO] {n} (ID: {i}) da duoc diem danh truoc do.")
         except Exception as e:
-            print(f"[ERROR] Lỗi khi ghi điểm danh: {str(e)}")
+            print(f"[ERROR] Loi khi ghi diem danh: {str(e)}")
 
     #================face recognition==================
     def face_recog(self):
@@ -148,11 +147,11 @@ class Face_Recognition:
                 # Header với 6 cột (không bao gồm buổi)
                 f.write("ID,Roll_No,Name,Time,Date,Attend\n")
             
-            print("[INFO] Đã tạo mới file attendance.csv với header 6 cột")
-            messagebox.showinfo("Reset Attendance", "Đã xóa dữ liệu điểm danh cũ để bắt đầu phiên mới", parent=self.root)
+            print("[INFO] Da tao moi file attendance.csv voi header 6 cot")
+            messagebox.showinfo("Reset Attendance", "Da xoa du lieu diem danh cu de bat dau phien moi", parent=self.root)
         except Exception as csv_err:
-            print(f"[ERROR] Không thể reset file attendance.csv: {str(csv_err)}")
-            messagebox.showwarning("Warning", "Không thể xóa dữ liệu điểm danh cũ", parent=self.root)
+            print(f"[ERROR] Khong the reset file attendance.csv: {str(csv_err)}")
+            messagebox.showwarning("Warning", "Khong the xoa du lieu diem danh cu", parent=self.root)
 
         def draw_boundray(img, classifier, scaleFactor, minNeighbors, color, text, clf):
             gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -188,51 +187,90 @@ class Face_Recognition:
                     try:
                         conn = mysql.connector.connect(username='root', password='12345', 
                                                      host='localhost', database='face_recognition', 
-                                                     port=3307, connect_timeout=3)
+                                                     port=3307, connect_timeout=5)
                         cursor = conn.cursor()
                         
-                        # Sử dụng prepared statement để tránh SQL injection
-                        query = "SELECT Name, Roll_No, Student_ID FROM student WHERE Student_ID=%s"
+                        # In thông tin debug
+                        print(f"[DEBUG] Attempting to find ID={id} in database")
+                        
+                        # Cố gắng các kiểu định dạng ID khác nhau
+                        found = False
+                        
+                        # 1. Thử với ID nguyên gốc
+                        query = "SELECT * FROM student WHERE Student_ID=%s"
                         cursor.execute(query, (str(id),))
                         result = cursor.fetchone()
                         
+                        if not result:
+                            # 2. Thử với ID dạng số nguyên
+                            try:
+                                cursor.execute(query, (int(id),))
+                                result = cursor.fetchone()
+                            except:
+                                pass
+                        
+                        if not result:
+                            # 3. Thử với ID có padding số 0 phía trước (1 -> 001, 2 -> 002, etc.)
+                            try:
+                                for pad_width in [2, 3, 4]:
+                                    padded_id = str(id).zfill(pad_width)
+                                    cursor.execute(query, (padded_id,))
+                                    result = cursor.fetchone()
+                                    if result:
+                                        break
+                            except:
+                                pass
+                        
                         if result:
-                            n, r, i = result
+                            # In cấu trúc dữ liệu để gỡ lỗi
+                            print(f"[DEBUG] Database record found: {result}")
+                            print(f"[DEBUG] Number of columns: {len(result)}")
+                            
+                            # Đảm bảo lấy đúng vị trí cột từ kết quả truy vấn
+                            i = str(result[0])  # Student_ID ở vị trí 0
+                            n = str(result[1])  # Name ở vị trí 1
+                            r = str(result[11]) # Roll_No có thể ở vị trí 11
+                            
                             print(f"Found in database: Name={n}, Roll={r}, ID={i}")
                         else:
+                            # Thử tìm kiếm theo cách khác nếu không tìm thấy
+                            print(f"[DEBUG] No record found for ID={id}, trying to list all IDs...")
+                            # Liệt kê ID có trong hệ thống
+                            cursor.execute("SELECT Student_ID FROM student LIMIT 10")
+                            ids = cursor.fetchall()
+                            print(f"[DEBUG] Available IDs in database: {[str(x[0]) for x in ids]}")
+                            
                             print(f"ID {id} not found in database")
                             n = r = i = "Unknown"
-                            
+                        # Đóng kết nối
+                        cursor.close()
+                        conn.close()
+                        
                     except Exception as db_error:
                         print(f"Database error: {str(db_error)}")
                         n = r = i = "Unknown"
-                    finally:
-                        if 'cursor' in locals() and cursor:
-                            cursor.close()
-                        if 'conn' in locals() and conn:
-                            conn.close()
                     
                     # Giảm ngưỡng xuống 45% để dễ nhận diện hơn
                     if confidence > 45:
                         cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
                         cv2.rectangle(img, (x, y-90), (x+w, y), (0, 255, 0), -1)
-                        cv2.putText(img, f"ID: {i}", (x+5, y-65), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-                        cv2.putText(img, f"MSSV: {r}", (x+5, y-45), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-                        cv2.putText(img, f"Tên: {n}", (x+5, y-25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
-                        cv2.putText(img, f"Độ tin cậy: {confidence}%", (x+5, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                        cv2.putText(img, f"ID: {i}", (x+5, y-65), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
+                        cv2.putText(img, f"Ma SV: {r}", (x+5, y-45), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
+                        cv2.putText(img, f"Ten: {n}", (x+5, y-25), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
+                        cv2.putText(img, f"Do tin cay: {confidence}%", (x+5, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2)
                         
                         self.mark_attendance(i, r, n)
                     else:
                         cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
                         cv2.rectangle(img, (x, y-25), (x+w, y), (0, 0, 255), -1)
-                        cv2.putText(img, "Không xác định", (x+5, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                        cv2.putText(img, "Khong xac dinh", (x+5, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
                     
                     coord = [x, y, w, h]
                     
                 except Exception as e:
                     print(f"Processing error: {str(e)}")
                     cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
-                    cv2.putText(img, "Processing Error", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                    cv2.putText(img, "Loi xu ly", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             
             return coord
 
@@ -242,11 +280,11 @@ class Face_Recognition:
         
         # Kiểm tra các file cần thiết
         if not os.path.exists("clf.xml"):
-            messagebox.showerror("Lỗi", "Không tìm thấy file clf.xml! Vui lòng huấn luyện mô hình trước.", parent=self.root)
+            messagebox.showerror("Loi", "Khong tim thay file clf.xml! Vui long huan luyen mo hinh truoc.", parent=self.root)
             return
         
         if not os.path.exists("haarcascade_frontalface_default.xml"):
-            messagebox.showerror("Lỗi", "Không tìm thấy file phát hiện khuôn mặt!", parent=self.root)
+            messagebox.showerror("Loi", "Khong tim thay file phat hien khuon mat!", parent=self.root)
             return
         
         try:
@@ -268,9 +306,9 @@ class Face_Recognition:
                 """)
                 conn.commit()
                 conn.close()
-                print("[INFO] Đã kiểm tra/tạo bảng stdattendance")
+                print("[INFO] Da kiem tra/tao bang stdattendance")
             except Exception as table_err:
-                print(f"[ERROR] Không thể tạo bảng: {str(table_err)}")
+                print(f"[ERROR] Khong the tao bang: {str(table_err)}")
             
             # Tải classifier
             clf = cv2.face.LBPHFaceRecognizer_create()
@@ -282,25 +320,25 @@ class Face_Recognition:
             # Kiểm tra camera
             videoCap = cv2.VideoCapture(0)
             if not videoCap.isOpened():
-                messagebox.showerror("Lỗi", "Không thể truy cập camera! Vui lòng kiểm tra kết nối camera của bạn.", parent=self.root)
+                messagebox.showerror("Loi", "Khong the truy cap camera! Vui long kiem tra ket noi camera cua ban.", parent=self.root)
                 return
             
             # Hiển thị thông báo và hướng dẫn
-            messagebox.showinfo("Bắt đầu", "Đã bắt đầu nhận diện khuôn mặt.\nNhấn 'f' để bật/tắt chế độ toàn màn hình.\nNhấn 'q' hoặc Enter để thoát.", parent=self.root)
+            messagebox.showinfo("Bat dau", "Da bat dau nhan dien khuon mat.\nNhan 'f' de bat/tat che do toan man hinh.\nNhan 'q' hoac Enter de thoat.", parent=self.root)
             
             # Trạng thái fullscreen
             is_fullscreen = True  # Mặc định bắt đầu với fullscreen
             
             # Thiết lập cửa sổ mặc định với chế độ fullscreen
-            cv2.namedWindow("Nhận Diện Khuôn Mặt", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("Nhận Diện Khuôn Mặt", 1280, 720)
-            cv2.setWindowProperty("Nhận Diện Khuôn Mặt", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            cv2.namedWindow("Nhan Dien Khuon Mat", cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("Nhan Dien Khuon Mat", 1280, 720)
+            cv2.setWindowProperty("Nhan Dien Khuon Mat", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             
             # Bắt đầu vòng lặp camera
             while True:
                 ret, img = videoCap.read()
                 if not ret:
-                    messagebox.showerror("Lỗi", "Không thể lấy khung hình từ camera!", parent=self.root)
+                    messagebox.showerror("Loi", "Khong the lay khung hinh tu camera!", parent=self.root)
                     break
                 
                 # Xử lý nhận diện
@@ -309,13 +347,13 @@ class Face_Recognition:
                 # Hiển thị thời gian thực
                 now = datetime.now()
                 dt_string = now.strftime("%H:%M:%S")
-                cv2.putText(img, f"Thời gian: {dt_string}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                cv2.putText(img, f"Thoi gian: {dt_string}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
                 
                 # Hiển thị hướng dẫn rõ ràng hơn
-                cv2.putText(img, "Nhấn 'f': Toàn màn hình | 'q' hoặc Enter: Thoát", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                cv2.putText(img, "Nhan 'f': Toan man hinh | 'q' hoac Enter: Thoat", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
                 
                 # Hiển thị ảnh
-                cv2.imshow("Nhận Diện Khuôn Mặt", img)
+                cv2.imshow("Nhan Dien Khuon Mat", img)
                 
                 # Xử lý phím nhấn
                 key = cv2.waitKey(1)
@@ -324,11 +362,11 @@ class Face_Recognition:
                 elif key == ord('f') or key == ord('F'):  # 'f' key để toggle fullscreen
                     is_fullscreen = not is_fullscreen
                     if is_fullscreen:
-                        cv2.setWindowProperty("Nhận Diện Khuôn Mặt", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+                        cv2.setWindowProperty("Nhan Dien Khuon Mat", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                         print("[INFO] Fullscreen mode ON")
                     else:
-                        cv2.setWindowProperty("Nhận Diện Khuôn Mặt", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
-                        cv2.resizeWindow("Nhận Diện Khuôn Mặt", 1280, 720)  # Kích thước chuẩn khi thoát fullscreen
+                        cv2.setWindowProperty("Nhan Dien Khuon Mat", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+                        cv2.resizeWindow("Nhan Dien Khuon Mat", 1280, 720)  # Kích thước chuẩn khi thoát fullscreen
                         print("[INFO] Fullscreen mode OFF")
             
             # Giải phóng tài nguyên
@@ -336,7 +374,7 @@ class Face_Recognition:
             cv2.destroyAllWindows()
             
         except Exception as e:
-            messagebox.showerror("Lỗi", f"Lỗi trong quá trình nhận diện khuôn mặt: {str(e)}", parent=self.root)
+            messagebox.showerror("Loi", f"Loi trong qua trinh nhan dien khuon mat: {str(e)}", parent=self.root)
             # Đảm bảo giải phóng tài nguyên ngay cả khi có lỗi
             if 'videoCap' in locals() and videoCap.isOpened():
                 videoCap.release()

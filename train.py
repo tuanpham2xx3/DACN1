@@ -52,7 +52,7 @@ class Train:
 
 
         #title section
-        title_lb1 = Label(bg_img,text="Huấn Luyện Dữ Liệu",font=("Times New Roman",32,"bold"),bg="white",fg="#00008B")
+        title_lb1 = Label(bg_img,text="Huấn Luyện Dữ Liệu",font=("Times New Roman",32,"bold"),bg="#00008B",fg="white")
         title_lb1.place(x=0,y=0,width=screen_width,height=50)
 
         # Căn giữa nút train
